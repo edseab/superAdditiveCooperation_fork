@@ -1,0 +1,11 @@
+rm(list = ls())
+
+library(sandwich)
+library(lmtest)
+library(MASS)
+
+dP2 <- read.table('dataP2.txt',header = T)
+
+resModel1 <- polr(as.ordered(transferP2) ~ age + male + educationYears + perepkaP2 + ingroupPairing + transferP1 + I(transferP1 * ingroupPairing),data = dP2,Hess=T,method='logistic')
+
+resModel1_test <- coeftest(resModel1,vcov = vcovCL, cluster = dP2$subject)

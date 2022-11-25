@@ -1,0 +1,10 @@
+rm(list=ls())
+
+library(sandwich)
+library(lmtest)
+library(MASS)
+
+dP1 <- read.table('dataP1.txt',header = T)
+
+resModel1 <- polr(as.ordered(transferP1) ~ I(1 - outgroupPairing),data = dP1,Hess=T,method='logistic')
+resModel1_test <- coeftest(resModel1)
