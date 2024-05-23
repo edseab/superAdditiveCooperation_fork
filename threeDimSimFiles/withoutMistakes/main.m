@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import <stdlib.h>
 #import <gsl/gsl_rng.h>
 #import <gsl/gsl_randist.h>
+#include <math.h> // Required for roundf()
 
 int main(int argc, const char *argv[])  {
 
@@ -42,14 +43,24 @@ int main(int argc, const char *argv[])  {
 	double probMutate = atof(argv[12]);
 	double mutLatStepInitTransfer = 0.025;						// Mutations occur on a lattice to avoid truncation at the boundaries.  The lattice step with respect to initial transfer values.
 	double mutLatStepIntercepts = 0.025;						// Mutations occur on a lattice to avoid truncation at the boundaries.  The lattice step with respect to the left and right intercepts for the response function.  
-	int numAgentsMigratePerGroup = atoi(argv[13]);
+
+	int mutLatMaxStepIntercepts = atof(argv[13]);						// NEW: Mutants can take up to this number of steps on the lattice in either direction.
+
+	int numAgentsMigratePerGroup = atoi(argv[14]);
 	
 	double probRecordDiffBtwnGroups = 0.0005;					// Probabilistic recording of differences (e.g. total fitness values) between paired groups.
 	int printDisaggFinalPeriodSim = 1;
 	int printAggOutput = 1; 
-	int initCond = atoi(argv[14]); 								// 1 is allSelfishMin, 2 is allRandom, and 3 is allPerfRecMax. 
-	int gameSelectionCoupled = atoi(argv[15]); 					// 1 means migration immediately precedes game play.  0 means migration immediately follows game play.
-	
+	int initCond = atoi(argv[15]); 								// 1 is allSelfishMin, 2 is allRandom, and 3 is allPerfRecMax. 
+	int gameSelectionCoupled = atoi(argv[16]); 					// 1 means migration immediately precedes game play.  0 means migration immediately follows game play.
+
+	// NEW FEATURES
+
+	// 1. Categorical strategy space
+
+	int categorical = atoi(argv[17]);                           // 1. means response functions are selected from preset list any of which can arise via mutation. 0 means the original model is implemented
+
+
 	// Various indices used for looping, etc.
 	int i;					// Indexing for simulations.
 	int j;					// Indexing for groups.
@@ -140,21 +151,21 @@ int main(int argc, const char *argv[])  {
 
 
 	// Output file for disaggregated data for the final period/generation of each simulation.
-	FILE *disaggFinalPeriodSim = fopen(argv[16],"w"); 
+	FILE *disaggFinalPeriodSim = fopen(argv[18],"w"); 
 	if (printDisaggFinalPeriodSim == 1)
 	{
 		fprintf(disaggFinalPeriodSim,"sim	gen	agent	group	initTransferIn	intLeftIn	intRightIn	partnerIn	partnerInitTransferIn	partnerIntLeftIn	partnerIntRightIn	firstMoverIn	interactIn	numInteractionsIn	initTransferOut	intLeftOut	intRightOut	outGroup	partnerOut	partnerInitTransferOut	partnerIntLeftOut	partnerIntRightOut	firstMoverOut	interactOut	numInteractionsOut	fitnessIn	fitnessOut	fitness	fitnessAsCumProp	groupWinsConflict\n");
 	}
 	
 	// Output file for aggregated data, recorded periodically, e.g. every 100 generations.
-	FILE *aggPeriodic = fopen(argv[17],"w");
+	FILE *aggPeriodic = fopen(argv[19],"w");
 	if (printAggOutput == 1)
 	{
 		fprintf(aggPeriodic,"sim	gen	meanInitTransferIn	meanIntLeftIn	meanIntRightIn	varInitTransferIn	varIntLeftIn	varIntRightIn	varWithinInitTransferIn	varWithinIntLeftIn	varWithinIntRightIn	varBtwnInitTransferIn	varBtwnIntLeftIn	varBtwnIntRightIn	meanInitTransferOut	meanIntLeftOut	meanIntRightOut	varInitTransferOut	varIntLeftOut	varIntRightOut	varWithinInitTransferOut	varWithinIntLeftOut	varWithinIntRightOut	varBtwnInitTransferOut	varBtwnIntLeftOut	varBtwnIntRightOut	meanFitness	varFitness	varWithinFitness	varBtwnFitness\n");
 	}
 	
 	// Output file to record the differences btwn pairs of groups.
-	FILE *diffBetweenGroups = fopen(argv[18],"w"); 
+	FILE *diffBetweenGroups = fopen(argv[20],"w"); 
 	fprintf(diffBetweenGroups,"sim gen firstGroup	secondGroup	diffTotalResources	maxDiffGroupPayoffs	conflictOccurs\n");
 	
 	
@@ -172,6 +183,8 @@ int main(int argc, const char *argv[])  {
 			[agent[j][k] setProbMutate: probMutate];
 			[agent[j][k] setMutLatStepInitTransfer: mutLatStepInitTransfer];
 			[agent[j][k] setMutLatStepIntercepts: mutLatStepIntercepts];
+			[agent[j][k] setMutLatMaxStepIntercepts: mutLatMaxStepIntercepts];
+			
 		}
 	}
 	
@@ -266,7 +279,14 @@ int main(int argc, const char *argv[])  {
 					{
 						[agent[j][k] updatePhenotypeFromTempIn]; 	// Updating from temp for reproduction.
 						[agent[j][k] updatePhenotypeFromTempOut]; 	// Updating from temp for reproduction.
-						[agent[j][k] implementMutationsIn];			// Add mutations to ingroup strategies.
+							if (categorical == 0)
+						{
+							[agent[j][k] implementMutationsIn];			// Add mutations to ingroup strategies.
+						} 
+							else 
+						{
+							[agent[j][k] categoricalMutation];			// Add mutations to ingroup strategies.
+						}
 						[agent[j][k] implementMutationsOut];		// Add mutations to outgroup strategies.
 						[agent[j][k] setMigrate:0];					// Re-initialize quantities that record agent migration.
 						[agent[j][k] setGroupMigrateFrom: -99];

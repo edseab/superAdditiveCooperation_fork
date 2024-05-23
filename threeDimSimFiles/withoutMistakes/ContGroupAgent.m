@@ -13,6 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 @implementation ContGroupAgent
 
+
 // getters
 -(double) initTransferIn
 {
@@ -222,6 +223,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(double) mutLatStepIntercepts
 {
 	return mutLatStepIntercepts;
+}
+
+-(int) mutLatMaxStepIntercepts // NEW Added by Seabright
+{
+	return mutLatMaxStepIntercepts;
 }
 
 -(int) migrate
@@ -455,6 +461,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	mutLatStepIntercepts = mStepInt;
 }
 
+// NEW Added by Seabright
+-(void) setMutLatMaxStepIntercepts: (int) mMaxStepInt
+{
+	mutLatMaxStepIntercepts = mMaxStepInt;
+}
+
+int NumSteps; // Declaring the integer number of steps that a mutant will take from their parent
+
+
 -(void) setMigrate: (int) mig
 {
 	migrate = mig;
@@ -470,6 +485,59 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	groupMigrateTo = grMigTo;
 }
 
+// Strategies
+// Perfect reciprocity
+double strat1[] = {0.0,1.0};
+// Unconditional strategies
+double strat2[] = {1.0,1.0};
+double strat3[] = {0.0,0.0};
+double strat4[] = {0.5,0.5};
+// De-escalating strategies
+double strat5[] = {0.0,0.9};
+double strat6[] = {0.0,0.8};
+double strat7[] = {0.0,0.7};
+double strat8[] = {0.0,0.6};
+double strat9[] = {0.0,0.5};
+double strat10[] = {0.0,0.4};
+double strat11[] = {0.0,0.3};
+double strat12[] = {0.0,0.2};
+double strat13[] = {0.0,0.1};
+// Escalating strategies
+double strat14[] = {0.1,1.0};
+double strat15[] = {0.2,1.0};
+double strat16[] = {0.3,1.0};
+double strat17[] = {0.4,1.0};
+double strat18[] = {0.5,1.0};
+double strat19[] = {0.6,1.0};
+double strat20[] = {0.7,1.0};
+double strat21[] = {0.8,1.0};
+double strat22[] = {0.9,1.0};
+// Ambiguous strategies
+double strat23[] = {0.1,0.9};
+double strat24[] = {0.3,0.9};
+double strat25[] = {0.5,0.9};
+double strat26[] = {0.7,0.9};
+double strat27[] = {0.1,0.7};
+double strat28[] = {0.3,0.7};
+double strat29[] = {0.5,0.7};
+double strat30[] = {0.9,0.7};
+double strat31[] = {0.1,0.5};
+double strat32[] = {0.3,0.5};
+double strat33[] = {0.7,0.5};
+double strat34[] = {0.9,0.5};
+double strat35[] = {0.1,0.3};
+double strat36[] = {0.5,0.3};
+double strat37[] = {0.7,0.3};
+double strat38[] = {0.9,0.3};
+double strat39[] = {0.3,0.1};
+double strat40[] = {0.5,0.1};
+double strat41[] = {0.7,0.1};
+double strat42[] = {0.9,0.1};
+// All strats together
+double *strategies[] = {strat1,strat2,strat3,strat4,strat5,strat6,strat7,strat8,strat9,strat10,strat11,strat12,strat13,strat14,strat15,strat16,strat17,strat18,strat19,strat20,strat21,strat22,strat23,strat24,strat25,strat26,strat27,strat28,strat29,strat30,strat31,strat32,strat33,strat34,strat35,strat36,strat37,strat38,strat39,strat40,strat41,strat42};
+
+int nstrats = 42; // This needs to be the same as the total number of possible response functions
+int mutant_strat; // declaring the randomly chosen response function that will be selected
 
 // procedural methods
 -(void) assignRandomInitTransferIn
@@ -682,6 +750,55 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	fitness = tempFitness;
 }
 
+-(void) categoricalMutation // New by Seabright: The mutation function for the categorical strategies model
+{
+	// initTransferIn (same as in continuous version)
+	if (initTransferIn <= 0.0)
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
+		{
+			initTransferIn = mutLatStepInitTransfer;
+		}
+	}
+	else if (initTransferIn >= 1.0)
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
+		{
+			initTransferIn = (double) 1.0 - mutLatStepInitTransfer;
+		}
+	}
+	else
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate)
+		{
+			if (((double) 1.0 - genrand_real2()) <= 0.5)
+			{
+				initTransferIn += mutLatStepInitTransfer;
+				if (initTransferIn > 1.0)
+				{
+					initTransferIn = 1.0;
+				}
+			}
+			else
+			{
+				initTransferIn -= mutLatStepInitTransfer;
+				if (initTransferIn < 0.0)
+				{
+					initTransferIn = 0.0;
+				}
+			}
+		}
+	}
+
+	// intercepts
+	if (((double) 1.0 - genrand_real2()) <= probMutate)
+		{
+		mutant_strat = genrand_int32() % (nstrats-1); // random integer between 0 and 41
+		intLeftIn = strategies[mutant_strat][0];
+		intRightIn = strategies[mutant_strat][1];
+		}
+}
+
 -(void) implementMutationsIn
 {
 	// initTransferIn
@@ -727,23 +844,28 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
 		{
-			intLeftIn = mutLatStepIntercepts;
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+			intLeftIn = mutLatStepIntercepts*NumSteps;
 		}
 	}
 	else if (intLeftIn >= 1.0)
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
 		{
-			intLeftIn = (double) 1.0 - mutLatStepIntercepts;
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+			intLeftIn = (double) 1.0 - mutLatStepIntercepts*NumSteps;
 		}
 	}
 	else
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate)
 		{
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+
 			if (((double) 1.0 - genrand_real2()) <= 0.5)
 			{
-				intLeftIn += mutLatStepIntercepts;
+				
+				intLeftIn += mutLatStepIntercepts*NumSteps;
 				if (intLeftIn > 1.0)
 				{
 					intLeftIn = 1.0;
@@ -751,7 +873,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 			}
 			else
 			{
-				intLeftIn -= mutLatStepIntercepts;
+				intLeftIn -= mutLatStepIntercepts*NumSteps;
 				if (intLeftIn < 0.0)
 				{
 					intLeftIn = 0.0;
@@ -765,23 +887,27 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
 		{
-			intRightIn = mutLatStepIntercepts;
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+			intRightIn = mutLatStepIntercepts*NumSteps;
 		}
 	}
 	else if (intRightIn >= 1.0)
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
 		{
-			intRightIn = (double) 1.0 - mutLatStepIntercepts;
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+			intRightIn = (double) 1.0 - mutLatStepIntercepts*NumSteps;
 		}
 	}
 	else
 	{
 		if (((double) 1.0 - genrand_real2()) <= probMutate)
 		{
+			NumSteps = (genrand_int32() % (mutLatMaxStepIntercepts))+1; // NEW Added by Seabright: Random integer between 1 and the max number of possible lattice steps for single mutation
+
 			if (((double) 1.0 - genrand_real2()) <= 0.5)
 			{
-				intRightIn += mutLatStepIntercepts;
+				intRightIn += mutLatStepIntercepts*NumSteps;
 				if (intRightIn > 1.0)
 				{
 					intRightIn = 1.0;
@@ -789,7 +915,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 			}
 			else
 			{
-				intRightIn -= mutLatStepIntercepts;
+				intRightIn -= mutLatStepIntercepts*NumSteps;
 				if (intRightIn < 0.0)
 				{
 					intRightIn  = 0.0;

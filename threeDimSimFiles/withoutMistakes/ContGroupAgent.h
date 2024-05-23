@@ -60,7 +60,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	
 	double probMutate;					// probability of mutating in either of the three dimensions (i.e. initTransfer, intLeft, or intRight)
 	double mutLatStepInitTransfer;		// if a mutation occurs w.r.t. initTransfer, it's either up or down by this quantity
-	double mutLatStepIntercepts;		// if a mutation occurs w.r.t. intLeft or intRight, it's either up or down by this quantity
+
+	// NEW Added by Seabright
+	double mutLatStepIntercepts;		// if a mutation occurs w.r.t. intLeft or intRight, it's either up or down in steps of this quantity
+	int mutLatMaxStepIntercepts;		// if a mutation occurs w.r.t. intLeft or intRight, it's either up or down by a maximum of this quantity
 	
 	int migrate;						// a dummy indicating if agent migrated
 	int groupMigrateFrom;				// idx for group of origin
@@ -110,6 +113,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(double) probMutate;
 -(double) mutLatStepInitTransfer;
 -(double) mutLatStepIntercepts;
+-(int) mutLatMaxStepIntercepts; // NEW Added By Seabright
 -(int) migrate;
 -(int) groupMigrateFrom;
 -(int) groupMigrateTo;
@@ -157,10 +161,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) setProbMutate: (double) pMut;
 -(void) setMutLatStepInitTransfer: (double) mStepInitT;
 -(void) setMutLatStepIntercepts: (double) mStepInt;
+-(void) setMutLatMaxStepIntercepts: (int) mMaxStepInt; // NEW Added by Seabright
 -(void) setMigrate: (int) mig;
 -(void) setGroupMigrateFrom: (int) grMigFr;
 -(void) setGroupMigrateTo: (int) grMigTo;
-	
+
 // procedural methods
 -(void) assignRandomInitTransferIn;
 -(void) assignRandomInterceptsIn;
@@ -174,5 +179,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) updateFitnessValuesFromTemp;
 -(void) implementMutationsIn;
 -(void) implementMutationsOut;
+-(void) categoricalMutation;
 
 @end
