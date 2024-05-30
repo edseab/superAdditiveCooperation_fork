@@ -64,7 +64,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	// NEW Added by Seabright
 	double mutLatStepIntercepts;		// if a mutation occurs w.r.t. intLeft or intRight, it's either up or down in steps of this quantity
 	int mutLatMaxStepIntercepts;		// if a mutation occurs w.r.t. intLeft or intRight, it's either up or down by a maximum of this quantity
-	
+	double PaybackParam;                // Transfers are increased or decreased by this parameter multiplied by the amount of partner escalation or de-escalation relative to the previous transfer
+    double PartnerPaybackParam;         // Same value for the partner
+	double MaxAbsPaybackParam;          // The maximum absolute value that the payback parameter can take
+    double mutLatStepPaybackParam;      // If a mutation occurs w.r.t the payback parameter, it's up or down by this quantity
+
 	int migrate;						// a dummy indicating if agent migrated
 	int groupMigrateFrom;				// idx for group of origin
 	int groupMigrateTo;					// idx for group migrates to
@@ -113,6 +117,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(double) probMutate;
 -(double) mutLatStepInitTransfer;
 -(double) mutLatStepIntercepts;
+-(double) PaybackParam; // NEW Added By Seabright
+-(double) PartnerPaybackParam; // NEW Added By Seabright
+-(double) MaxAbsPaybackParam; // NEW Added By Seabright
+-(double) mutLatStepPaybackParam; // NEW Added By Seabright
 -(int) mutLatMaxStepIntercepts; // NEW Added By Seabright
 -(int) migrate;
 -(int) groupMigrateFrom;
@@ -122,6 +130,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) setInitTransferIn: (double) initT_in;
 -(void) setIntLeftIn: (double) intL_in;
 -(void) setIntRightIn: (double) intR_in;
+-(void) setPaybackParam: (double) PP;                 // NEW Added by Seabright
 -(void) setTempInitTransferIn: (double) tInitT_in;
 -(void) setTempIntLeftIn: (double) tIntL_in;
 -(void) setTempIntRightIn: (double) tIntR_in;
@@ -135,6 +144,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) setPartnerInitTransferIn: (double) partInitT_in;
 -(void) setPartnerIntLeftIn: (double) partIntL_in;
 -(void) setPartnerIntRightIn: (double) partIntR_in;
+-(void) setPartnerPaybackParam: (double) PPP;                 // NEW Added by Seabright
 -(void) setPartnerOut: (int) part_out;
 -(void) setPartnerInitTransferOut: (double) partInitT_out;
 -(void) setPartnerIntLeftOut: (double) partIntL_out;
@@ -162,6 +172,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) setMutLatStepInitTransfer: (double) mStepInitT;
 -(void) setMutLatStepIntercepts: (double) mStepInt;
 -(void) setMutLatMaxStepIntercepts: (int) mMaxStepInt; // NEW Added by Seabright
+-(void) setMaxAbsPaybackParam: (double) maxAbsPP; // NEW Added by Seabright
+-(void) setmutLatStepPaybackParam: (double) mStepPP; // NEW Added by Seabright
 -(void) setMigrate: (int) mig;
 -(void) setGroupMigrateFrom: (int) grMigFr;
 -(void) setGroupMigrateTo: (int) grMigTo;

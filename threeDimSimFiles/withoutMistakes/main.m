@@ -54,12 +54,19 @@ int main(int argc, const char *argv[])  {
 	int initCond = atoi(argv[15]); 								// 1 is allSelfishMin, 2 is allRandom, and 3 is allPerfRecMax. 
 	int gameSelectionCoupled = atoi(argv[16]); 					// 1 means migration immediately precedes game play.  0 means migration immediately follows game play.
 
-	// NEW FEATURES
+	// NEW FEATURES (Added by Seabright)
 
 	// 1. Categorical strategy space
 
 	int categorical = atoi(argv[17]);                           // 1. means response functions are selected from preset list any of which can arise via mutation. 0 means the original model is implemented
+    
+	// 2. Payback parameter: Transfers can be changed as a function of how much the partner escalated or de-escalated relative to the player's previous transfer. 
 
+	double StartPaybackParam = 0.0;	                               // If 0, no effect of payback. Positive values means escalation is rewarded and de-escalation is punished. Negative values mean the opposite.
+
+	double MaxAbsPaybackParam = atof(argv[18]);                // Largest absolute value that the Payback Parameter can take. If 0, Payback Parameter effectively disabled.
+
+    double mutLatStepPaybackParam = 0.05;                      // Lattice step for payback parameter
 
 	// Various indices used for looping, etc.
 	int i;					// Indexing for simulations.
@@ -114,6 +121,9 @@ int main(int argc, const char *argv[])  {
 	double varInitTransferOut;
 	double varIntLeftOut;
 	double varIntRightOut;
+
+	double meanPaybackParam;                         // NEW Added by Seabright
+	double varPaybackParam;                          // NEW Added by Seabright
 	
 	double meanFitness;								// Calculated with respect to the total fitness (exo + endo) for each agent in a generation.
 	double varFitness;	
@@ -151,21 +161,21 @@ int main(int argc, const char *argv[])  {
 
 
 	// Output file for disaggregated data for the final period/generation of each simulation.
-	FILE *disaggFinalPeriodSim = fopen(argv[18],"w"); 
+	FILE *disaggFinalPeriodSim = fopen(argv[19],"w"); 
 	if (printDisaggFinalPeriodSim == 1)
 	{
-		fprintf(disaggFinalPeriodSim,"sim	gen	agent	group	initTransferIn	intLeftIn	intRightIn	partnerIn	partnerInitTransferIn	partnerIntLeftIn	partnerIntRightIn	firstMoverIn	interactIn	numInteractionsIn	initTransferOut	intLeftOut	intRightOut	outGroup	partnerOut	partnerInitTransferOut	partnerIntLeftOut	partnerIntRightOut	firstMoverOut	interactOut	numInteractionsOut	fitnessIn	fitnessOut	fitness	fitnessAsCumProp	groupWinsConflict\n");
+		fprintf(disaggFinalPeriodSim,"sim	gen	agent	group	initTransferIn	intLeftIn	intRightIn	PaybackParam   partnerIn	partnerInitTransferIn	partnerIntLeftIn	partnerIntRightIn	PartnerPaybackParam firstMoverIn	interactIn	numInteractionsIn	initTransferOut	intLeftOut	intRightOut	outGroup	partnerOut	partnerInitTransferOut	partnerIntLeftOut	partnerIntRightOut	firstMoverOut	interactOut	numInteractionsOut	fitnessIn	fitnessOut	fitness	fitnessAsCumProp	groupWinsConflict\n");
 	}
 	
 	// Output file for aggregated data, recorded periodically, e.g. every 100 generations.
-	FILE *aggPeriodic = fopen(argv[19],"w");
+	FILE *aggPeriodic = fopen(argv[20],"w");
 	if (printAggOutput == 1)
 	{
-		fprintf(aggPeriodic,"sim	gen	meanInitTransferIn	meanIntLeftIn	meanIntRightIn	varInitTransferIn	varIntLeftIn	varIntRightIn	varWithinInitTransferIn	varWithinIntLeftIn	varWithinIntRightIn	varBtwnInitTransferIn	varBtwnIntLeftIn	varBtwnIntRightIn	meanInitTransferOut	meanIntLeftOut	meanIntRightOut	varInitTransferOut	varIntLeftOut	varIntRightOut	varWithinInitTransferOut	varWithinIntLeftOut	varWithinIntRightOut	varBtwnInitTransferOut	varBtwnIntLeftOut	varBtwnIntRightOut	meanFitness	varFitness	varWithinFitness	varBtwnFitness\n");
+		fprintf(aggPeriodic,"sim	gen	meanInitTransferIn	meanIntLeftIn	meanIntRightIn	meanPaybackParam varInitTransferIn	varIntLeftIn	varIntRightIn	varPaybackParam varWithinInitTransferIn	varWithinIntLeftIn	varWithinIntRightIn	varBtwnInitTransferIn	varBtwnIntLeftIn	varBtwnIntRightIn	meanInitTransferOut	meanIntLeftOut	meanIntRightOut	varInitTransferOut	varIntLeftOut	varIntRightOut	varWithinInitTransferOut	varWithinIntLeftOut	varWithinIntRightOut	varBtwnInitTransferOut	varBtwnIntLeftOut	varBtwnIntRightOut	meanFitness	varFitness varWithinFitness	varBtwnFitness\n");
 	}
 	
 	// Output file to record the differences btwn pairs of groups.
-	FILE *diffBetweenGroups = fopen(argv[20],"w"); 
+	FILE *diffBetweenGroups = fopen(argv[21],"w"); 
 	fprintf(diffBetweenGroups,"sim gen firstGroup	secondGroup	diffTotalResources	maxDiffGroupPayoffs	conflictOccurs\n");
 	
 	
@@ -184,7 +194,8 @@ int main(int argc, const char *argv[])  {
 			[agent[j][k] setMutLatStepInitTransfer: mutLatStepInitTransfer];
 			[agent[j][k] setMutLatStepIntercepts: mutLatStepIntercepts];
 			[agent[j][k] setMutLatMaxStepIntercepts: mutLatMaxStepIntercepts];
-			
+			[agent[j][k] setMaxAbsPaybackParam: MaxAbsPaybackParam];
+			[agent[j][k] setmutLatStepPaybackParam: mutLatStepPaybackParam];
 		}
 	}
 	
@@ -222,7 +233,8 @@ int main(int argc, const char *argv[])  {
 					[agent[j][k] setIntRightIn: 0.0];
 					[agent[j][k] setInitTransferOut: 0.0];
 					[agent[j][k] setIntLeftOut: 0.0];
-					[agent[j][k] setIntRightOut: 0.0];
+					[agent[j][k] setIntRightOut: 0.0];			
+					[agent[j][k] setPaybackParam: StartPaybackParam];  // NEW Added by Seabright
 				}
 				else if (initCond == 2)
 				{
@@ -230,6 +242,7 @@ int main(int argc, const char *argv[])  {
 					[agent[j][k] assignRandomInterceptsIn];
 					[agent[j][k] assignRandomInitTransferOut];
 					[agent[j][k] assignRandomInterceptsOut];
+					[agent[j][k] setPaybackParam: StartPaybackParam];    // NEW Added by Seabright
 				}
 				else if (initCond == 3)
 				{
@@ -239,6 +252,7 @@ int main(int argc, const char *argv[])  {
 					[agent[j][k] setInitTransferOut: 1.0];
 					[agent[j][k] setIntLeftOut: 0.0];
 					[agent[j][k] setIntRightOut: 1.0];
+					[agent[j][k] setPaybackParam: StartPaybackParam];    // NEW Added by Seabright
 				}
 				else
 				{
@@ -464,6 +478,7 @@ int main(int argc, const char *argv[])  {
 						[agent[j][indicesAgents[j][k]] setPartnerInitTransferIn: [agent[j][indicesAgents[j][k+1]] initTransferIn]];
 						[agent[j][indicesAgents[j][k]] setPartnerIntLeftIn: [agent[j][indicesAgents[j][k+1]] intLeftIn]];
 						[agent[j][indicesAgents[j][k]] setPartnerIntRightIn: [agent[j][indicesAgents[j][k+1]] intRightIn]];
+						[agent[j][indicesAgents[j][k]] setPartnerPaybackParam: [agent[j][indicesAgents[j][k+1]] PaybackParam]]; // NEW Added by Seabright
 						if (((double) 1.0 - genrand_real2()) <= probInteractionIn)
 						{
 							[agent[j][indicesAgents[j][k]] setInteractIn: 1];
@@ -482,6 +497,7 @@ int main(int argc, const char *argv[])  {
 						[agent[j][indicesAgents[j][k]] setPartnerInitTransferIn: [agent[j][indicesAgents[j][k-1]] initTransferIn]];
 						[agent[j][indicesAgents[j][k]] setPartnerIntLeftIn: [agent[j][indicesAgents[j][k-1]] intLeftIn]];
 						[agent[j][indicesAgents[j][k]] setPartnerIntRightIn: [agent[j][indicesAgents[j][k-1]] intRightIn]];
+						[agent[j][indicesAgents[j][k]] setPartnerPaybackParam: [agent[j][indicesAgents[j][k-1]] PaybackParam]]; // NEW Added by Seabright
 						[agent[j][indicesAgents[j][k]] setInteractIn: [agent[j][indicesAgents[j][k-1]] interactIn]];
 						[agent[j][indicesAgents[j][k]] setNumInteractionsIn: [agent[j][indicesAgents[j][k-1]] numInteractionsIn]];
 					}
@@ -635,7 +651,7 @@ int main(int argc, const char *argv[])  {
 				{
 					for (k = 0; k < numAgentsInGroup; k++)
 					{
-						fprintf(disaggFinalPeriodSim,"%i	%i	%i	%i	%f	%f	%f	%i	%f	%f	%f	%i	%i	%i	%f	%f	%f	%i	%i	%f	%f	%f	%i	%i	%i	%f	%f	%f	%f	%i\n", i, t, k, j, [agent[j][k] initTransferIn], [agent[j][k] intLeftIn], [agent[j][k] intRightIn], [agent[j][k] partnerIn], [agent[j][k] partnerInitTransferIn], [agent[j][k] partnerIntLeftIn], [agent[j][k] partnerIntRightIn], [agent[j][k] firstMoverIn], [agent[j][k] interactIn], [agent[j][k] numInteractionsIn], [agent[j][k] initTransferOut], [agent[j][k] intLeftOut], [agent[j][k] intRightOut], [agent[j][k] outGroup], [agent[j][k] partnerOut], [agent[j][k] partnerInitTransferOut], [agent[j][k] partnerIntLeftOut], [agent[j][k] partnerIntRightOut], [agent[j][k] firstMoverOut], [agent[j][k] interactOut], [agent[j][k] numInteractionsOut], [agent[j][k] fitnessIn], [agent[j][k] fitnessOut], [agent[j][k] fitness], [agent[j][k] fitnessAsCumProp], groupWinsConflict[j]);
+						fprintf(disaggFinalPeriodSim,"%i	%i	%i	%i	%f	%f	%f	%f	%i	%f	%f	%f	%f	%i	%i	%i	%f	%f	%f	%i	%i	%f	%f	%f	%i	%i	%i	%f	%f	%f	%f	%i\n", i, t, k, j, [agent[j][k] initTransferIn], [agent[j][k] intLeftIn], [agent[j][k] intRightIn], [agent[j][k] PaybackParam], [agent[j][k] partnerIn], [agent[j][k] partnerInitTransferIn], [agent[j][k] partnerIntLeftIn], [agent[j][k] PartnerPaybackParam], [agent[j][k] partnerIntRightIn], [agent[j][k] firstMoverIn], [agent[j][k] interactIn], [agent[j][k] numInteractionsIn], [agent[j][k] initTransferOut], [agent[j][k] intLeftOut], [agent[j][k] intRightOut], [agent[j][k] outGroup], [agent[j][k] partnerOut], [agent[j][k] partnerInitTransferOut], [agent[j][k] partnerIntLeftOut], [agent[j][k] partnerIntRightOut], [agent[j][k] firstMoverOut], [agent[j][k] interactOut], [agent[j][k] numInteractionsOut], [agent[j][k] fitnessIn], [agent[j][k] fitnessOut], [agent[j][k] fitness], [agent[j][k] fitnessAsCumProp], groupWinsConflict[j]);
 					}
 				}
 			}
@@ -657,7 +673,11 @@ int main(int argc, const char *argv[])  {
 				varInitTransferOut = 0.0;
 				varIntLeftOut = 0.0;
 				varIntRightOut = 0.0;
-				
+
+				// NEW Added by Seabright
+				meanPaybackParam = 0.0;
+				varPaybackParam = 0.0;
+
 				varWithinInitTransferIn = 0.0;
 				varBtwnInitTransferIn = 0.0;	
 				varWithinIntLeftIn = 0.0;
@@ -707,6 +727,9 @@ int main(int argc, const char *argv[])  {
 						varByGroupIntLeftIn[j] += pow([agent[j][k] intLeftIn],2);
 						varIntRightIn += pow([agent[j][k] intRightIn],2);
 						varByGroupIntRightIn[j] += pow([agent[j][k] intRightIn],2);
+
+						meanPaybackParam += [agent[j][k] PaybackParam];
+						varPaybackParam += pow([agent[j][k] PaybackParam],2);
 						
 						meanInitTransferOut += [agent[j][k] initTransferOut];
 						meanByGroupInitTransferOut[j] += [agent[j][k] initTransferOut];

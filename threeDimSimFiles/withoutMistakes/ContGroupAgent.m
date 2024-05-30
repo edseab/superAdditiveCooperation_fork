@@ -9,6 +9,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #import "ContGroupAgent.h"
 #import "mt19937ar.h"
 #import <stdlib.h>
+#import <math.h> // NEW added by Seabright for various functions.
 
 
 @implementation ContGroupAgent
@@ -58,6 +59,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(double) intRightOut
 {
 	return intRightOut;
+}
+
+-(double) PaybackParam   // NEW Added by Seabright
+{
+	return PaybackParam;
 }
 
 -(double) tempInitTransferOut
@@ -113,6 +119,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(double) partnerIntRightOut
 {
 	return partnerIntRightOut;
+}
+
+-(double) PartnerPaybackParam   // NEW Added by Seabright
+{
+	return PartnerPaybackParam;
 }
 
 -(int) group
@@ -245,6 +256,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	return groupMigrateTo;
 }
 
+-(double) MaxAbsPaybackParam
+{
+	return MaxAbsPaybackParam;
+}
+
+-(double) mutLatStepPaybackParam
+{
+	return mutLatStepPaybackParam;
+}
+
 
 // setters
 -(void) setInitTransferIn: (double) initT_in
@@ -292,6 +313,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	intRightOut = intR_out;
 }
 
+-(void) setPaybackParam: (double) PP                 // NEW Added by Seabright
+{
+	PaybackParam = PP;
+}
+
 -(void) setTempInitTransferOut: (double) tInitT_out
 {
 	tempInitTransferOut = tInitT_out;
@@ -325,6 +351,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -(void) setPartnerIntRightIn: (double) partIntR_in
 {
 	partnerIntRightIn = partIntR_in;
+}
+
+-(void) setPartnerPaybackParam: (double) PPP                 // NEW Added by Seabright
+{
+	PartnerPaybackParam = PPP;
 }
 
 -(void) setPartnerOut: (int) part_out;
@@ -462,6 +493,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 }
 
 // NEW Added by Seabright
+-(void) setMaxAbsPaybackParam: (double) maxAbsPP
+{
+	MaxAbsPaybackParam = maxAbsPP;
+}
+
+-(void) setmutLatStepPaybackParam: (double) mStepPP
+{
+	mutLatStepPaybackParam = mStepPP;
+}
+
 -(void) setMutLatMaxStepIntercepts: (int) mMaxStepInt
 {
 	mutLatMaxStepIntercepts = mMaxStepInt;
@@ -536,7 +577,7 @@ double strat42[] = {0.9,0.1};
 // All strats together
 double *strategies[] = {strat1,strat2,strat3,strat4,strat5,strat6,strat7,strat8,strat9,strat10,strat11,strat12,strat13,strat14,strat15,strat16,strat17,strat18,strat19,strat20,strat21,strat22,strat23,strat24,strat25,strat26,strat27,strat28,strat29,strat30,strat31,strat32,strat33,strat34,strat35,strat36,strat37,strat38,strat39,strat40,strat41,strat42};
 
-int nstrats = 42; // This needs to be the same as the total number of possible response functions
+int nstrats = sizeof(strategies)/sizeof(strategies[0]); // This needs to be the same as the total number of possible response functions
 int mutant_strat; // declaring the randomly chosen response function that will be selected
 
 // procedural methods
@@ -620,9 +661,9 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 	} 
 }
 	
--(void) calculateFitnessIn
+-(void) calculateFitnessIn // NEW by Seabright: changed the transfers to include the Payback, which is a function of the Payback Parameter and the amount escalated or de-escalated bu the partner's previous transfer.
 {
-	if (numInteractionsIn == 1)
+	if (numInteractionsIn == 1) // No changes here because Payback Parameter is irrelevant to 2st interaction
 	{
 		if (firstMoverIn == 1)
 		{
@@ -647,8 +688,10 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 		
 			for (n = 1; n < numInteractionsIn; n++)
 			{
-				focalBeh = intLeftIn + (intRightIn - intLeftIn) * partnerBeh;
-				partnerBeh = partnerIntLeftIn + (partnerIntRightIn - partnerIntLeftIn) * focalBeh;
+				focalBeh = intLeftIn + (intRightIn - intLeftIn) * partnerBeh + PaybackParam * (partnerBeh - focalBeh); // NEW by Seabright: add payback to the transfer
+				focalBeh = fmax(fmin(focalBeh, 1.0), 0.0); // NEW by Seabright constrain to be between 0 and 1
+				partnerBeh = partnerIntLeftIn + (partnerIntRightIn - partnerIntLeftIn) * focalBeh + PartnerPaybackParam * (focalBeh - partnerBeh); // NEW by Seabright: add payback to the transfer
+				partnerBeh = fmax(fmin(partnerBeh, 1.0), 0.0); // NEW by Seabright constrain to be between 0 and 1
 				fitnessIn += (double) 1.0 - focalBeh + efficiencyFactor * partnerBeh;
 			}
 		}
@@ -660,8 +703,10 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 
 			for (n = 1; n < numInteractionsIn; n++)
 			{
-				partnerBeh = partnerIntLeftIn + (partnerIntRightIn - partnerIntLeftIn) * focalBeh;
-				focalBeh = intLeftIn + (intRightIn - intLeftIn) * partnerBeh;
+				partnerBeh = partnerIntLeftIn + (partnerIntRightIn - partnerIntLeftIn) * focalBeh + PartnerPaybackParam * (focalBeh - partnerBeh); // NEW by Seabright: add payback to the transfer
+				partnerBeh = fmax(fmin(partnerBeh, 1.0), 0.0); // NEW by Seabright constrain to be between 0 and 1
+				focalBeh = intLeftIn + (intRightIn - intLeftIn) * partnerBeh + PaybackParam * (partnerBeh - focalBeh); // NEW by Seabright: add payback to the transfer
+				focalBeh = fmax(fmin(focalBeh, 1.0), 0.0); // NEW by Seabright constrain to be between 0 and 1
 				fitnessIn += (double) 1.0 - focalBeh + efficiencyFactor * partnerBeh;
 			}
 		}
@@ -732,8 +777,10 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 -(void) updatePhenotypeFromTempIn
 {
 	initTransferIn = tempInitTransferIn;
+
 	intLeftIn = tempIntLeftIn;
 	intRightIn = tempIntRightIn;
+	
 }
 
 -(void) updatePhenotypeFromTempOut
@@ -799,7 +846,7 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 		}
 }
 
--(void) implementMutationsIn
+-(void) implementMutationsIn // NEW Added by Seabright: increased possible number of simultaneous mutation steps and implemented mutation for Payback Parameter
 {
 	// initTransferIn
 	if (initTransferIn <= 0.0)
@@ -923,6 +970,45 @@ int mutant_strat; // declaring the randomly chosen response function that will b
 			}
 		}
 	}
+
+// PaybackParam:  NEW added by Seabright
+	if (PaybackParam <= - MaxAbsPaybackParam)
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
+		{
+			PaybackParam = mutLatStepPaybackParam - MaxAbsPaybackParam;
+		}
+	}
+	else if (PaybackParam >= MaxAbsPaybackParam)
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate / (double) 2.0)
+		{
+			PaybackParam = (double) MaxAbsPaybackParam - mutLatStepPaybackParam;
+		}
+	}
+	else
+	{
+		if (((double) 1.0 - genrand_real2()) <= probMutate)
+		{
+			if (((double) 1.0 - genrand_real2()) <= 0.5)
+			{
+				PaybackParam += mutLatStepPaybackParam;
+				if (PaybackParam > MaxAbsPaybackParam)
+				{
+					PaybackParam = MaxAbsPaybackParam;
+				}
+			}
+			else
+			{
+				PaybackParam -= MaxAbsPaybackParam;
+				if (PaybackParam < - MaxAbsPaybackParam)
+				{
+					PaybackParam = - MaxAbsPaybackParam;
+				}
+			}
+		}
+	}
+
 }
 
 -(void) implementMutationsOut
